@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5ef">
+  <title>Good Dog Wordle</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: #23332c;
+      background: #f7f5ef;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --green: #527b63;
+      --yellow: #d3a640;
+      --gray: #87918a;
+      --ink: #23332c;
+      --muted: #68756d;
+      --line: #d8ded7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 28px 16px 40px;
+      background:
+        radial-gradient(ellipse at 12% 0%, #e8eee4 0, transparent 34rem),
+        #f7f5ef;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .app {
+      width: min(100%, 520px);
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border-radius: 15px;
+      background: #e4ecdf;
+      font-size: 25px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(20px, 5vw, 26px);
+      letter-spacing: -0.7px;
+    }
+
+    .subtitle {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .new-game {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fffefa;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .new-game:hover { background: #edf2e9; }
+
+    .game-info {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 20px 2px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .game-info strong { color: var(--ink); }
+
+    .board {
+      display: grid;
+      gap: 7px;
+      width: min(100%, var(--board-width));
+      margin: 0 auto 18px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(var(--word-length), minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .tile {
+      display: grid;
+      aspect-ratio: 1;
+      place-items: center;
+      border: 2px solid #d5dcd5;
+      border-radius: 8px;
+      background: #fffefa;
+      font-size: clamp(15px, 5vw, 25px);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .tile.filled { border-color: #9aa79c; }
+    .tile.correct, .key.correct { border-color: var(--green); background: var(--green); color: white; }
+    .tile.present, .key.present { border-color: var(--yellow); background: var(--yellow); color: white; }
+    .tile.absent, .key.absent { border-color: var(--gray); background: var(--gray); color: white; }
+
+    .guess-form {
+      display: flex;
+      gap: 9px;
+      margin: 0 auto 13px;
+    }
+
+    .guess-input {
+      min-width: 0;
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid #cbd4cb;
+      border-radius: 10px;
+      background: #fffefa;
+      color: var(--ink);
+      font-size: 16px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .guess-input:focus { outline: 3px solid #527b6333; border-color: var(--green); }
+
+    .submit {
+      padding: 0 18px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--green);
+      color: white;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .submit:hover { background: #42664f; }
+    .submit:disabled, .guess-input:disabled { cursor: not-allowed; opacity: .58; }
+
+    .message {
+      min-height: 24px;
+      margin: 0 0 13px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .message.success { color: #426c50; font-weight: 800; }
+    .message.error { color: #a04c3f; }
+
+    .keyboard {
+      display: grid;
+      gap: 7px;
+      margin: 0 auto 22px;
+    }
+
+    .key-row {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .key {
+      min-width: 0;
+      flex: 1;
+      max-width: 43px;
+      height: 46px;
+      padding: 0 2px;
+      border: 0;
+      border-radius: 7px;
+      background: #e2e6df;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .key.wide { max-width: 68px; font-size: 11px; }
+    .key:hover:not(:disabled) { filter: brightness(.96); }
+    .key:disabled { cursor: default; }
+
+    details {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fffefa;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    summary { color: var(--ink); cursor: pointer; font-weight: 700; }
+    .breed-list { margin: 10px 0 0; line-height: 1.8; }
+
+    @media (max-width: 380px) {
+      body { padding-inline: 11px; }
+      .brand { gap: 8px; }
+      .brand-icon { width: 40px; height: 40px; }
+      .new-game { padding: 8px; font-size: 12px; }
+      .row { gap: 5px; }
+      .board { gap: 5px; }
+      .key-row { gap: 3px; }
+      .key { height: 42px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">🐾</div>
+        <div>
+          <h1>Good Dog Wordle</h1>
+          <p class="subtitle">A new breed to sniff out every game</p>
+        </div>
+      </div>
+      <button class="new-game" id="newGame" type="button">New game</button>
+    </header>
+
+    <div class="game-info">
+      <span>Breed length: <strong id="lengthLabel"></strong></span>
+      <span>Guess <strong id="turnLabel">1</strong> of 6</span>
+    </div>
+
+    <section class="board" id="board" aria-label="Guess board"></section>
+
+    <form class="guess-form" id="guessForm">
+      <label class="sr-only" for="guessInput">Your dog breed guess</label>
+      <input class="guess-input" id="guessInput" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="TYPE A BREED" aria-describedby="message">
+      <button class="submit" id="submitGuess" type="submit">Guess</button>
+    </form>
+    <p class="message" id="message" role="status" aria-live="polite">Guess a dog breed with the matching number of letters.</p>
+
+    <section class="keyboard" id="keyboard" aria-label="On-screen keyboard"></section>
+
+    <details>
+      <summary>Which breeds can I guess?</summary>
+      <p class="breed-list" id="breedList"></p>
+    </details>
+  </main>
+
+  <style>
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+      border: 0;
+    }
+  </style>
+
+  <script>
+    (() => {
+      const breeds = [
+        "Affenpinscher", "Afghan Hound", "Airedale Terrier", "Akita", "Alaskan Malamute",
+         "American Bulldog", "American Eskimo Dog", "American Foxhound", "American Staffordshire Terrier",
+          "Anatolian Shepherd Dog", "Australian Cattle Dog", "Australian Shepherd", "Australian Terrier",
+          "Basenji", "Basset Hound", "Beagle", "Bearded Collie", "Bedlington Terrier",
+          "Belgian Malinois", "Belgian Sheepdog", "Belgian Tervuren", "Bernese Mountain Dog",
+          "Bichon Frise", "Black and Tan Coonhound", "Black Russian Terrier", "Bloodhound",
+          "Border Collie", "Border Terrier", "Borzoi", "Boston Terrier", "Bouvier des Flandres", "Boxer",
+          "Boykin Spaniel", "Briard", "Brittany Spaniel", "Brussels Griffon", "Bull Terrier", 
+          "Bulldog (English)", "Bulldog (French)", "Bullmastiff", "Cairn Terrier", 
+          "Canaan Dog", "Cane Corso", "Cardigan Welsh Corgi", "Cavalier King Charles Spaniel", "Chesapeake Bay Retriever",
+          "Chihuahua", "Chinese Crested", "Chinese Shar-Pei", "Chow Chow", "Clumber Spaniel",
+          "Cockapoo", "Cocker Spaniel", "Collie", "Coonhound", "Corgi", "Curly-Coated Retriever",
+          "Dachshund", "Dalmatian", "Dandie Dinmont Terrier", "Doberman Pinscher", "Dogo Argentino",
+          "Dogue de Bordeaux", "Dutch Shepherd", "English Bulldog", "English Cocker Spaniel",
+          "English Foxhound", "English Setter", "English Springer Spaniel", "English Toy Spaniel",
+          "Entlebucher Mountain Dog", "Eskimo Dog", "Field Spaniel", "Finnish Lapphund", 
+          "Finnish Spitz", "Flat-Coated Retriever", "French Bulldog", "German Pinscher", "German Shepherd Dog",
+          "German Shorthaired Pointer", "German Wirehaired Pointer", "Giant Schnauzer", "Glen of Imaal Terrier",
+          "Goldador", "Golden Retriever", "Goldendoodle", "Gordon Setter", "Great Dane",
+          "Great Pyrenees", "Greater Swiss Mountain Dog", "Greyhound", "Harrier", "Havanese",
+          "Irish Setter", "Irish Terrier", "Irish Water Spaniel", "Irish Wolfhound", "Italian Greyhound",
+          "Jack Russell Terrier", "Japanese Chin", "Japanese Spitz", "Keeshond", "Kerry Blue Terrier",
+          "Klee Kai", "Komondor", "Kuvasz", "Labrador Retriever", "Labradoodle", "Lagotto Romagnolo", "Lakeland Terrier", "Lancashire Heeler",
+          "Leonberger", "Lhasa Apso", "Lowchen", "Maltese", "Manchester Terrier", "Mastiff",
+          "Miniature Bull Terrier", "Miniature Pinscher", "Miniature Schnauzer", "Neapolitan Mastiff",
+          "Newfoundland", "Norfolk Terrier", "Norwegian Buhund", "Norwegian Elkhound", "Norwegian Lundehund",
+          "Norwich Terrier", "Nova Scotia Duck Tolling Retriever", "Old English Sheepdog", "Otterhound",
+          "Papillon", "Pekingese", "Pembroke Welsh Corgi", "Petit Basset Griffon Vendeen", "Pharaoh Hound",
+          "Plott Hound", "Pointer", "Polish Lowland Sheepdog", "Pomeranian", "Poodle", "Portuguese Water Dog", "Presa Canario", "Pug", "Puli", "Pumi",
+          "Pyrenean Shepherd", "Rat Terrier", "Redbone Coonhound", "Rhodesian Ridgeback", "Rottweiler",
+          "Saint Bernard", "Saluki", "Samoyed", "Schipperke", "Scottish Deerhound", "Scottish Terrier",
+          "Sealyham Terrier", "Shetland Sheepdog", "Shiba Inu", "Shih Tzu", "Siberian Husky",
+          "Silky Terrier", "Skye Terrier", "Sloughi", "Small Munsterlander Pointer", "Soft Coated Wheaten Terrier",
+          "Spanish Water Dog", "Spinone Italiano", "Staffordshire Bull Terrier", "Standard Schnauzer", "Sussex Spaniel", "Swedish Vallhund", "Tibetan Mastiff", "Tibetan Spaniel",
+          "Tibetan Terrier", "Toy Fox Terrier", "Treeing Walker Coonhound", "Vizsla", "Weimaraner", "Welsh Springer Spaniel", "Welsh Terrier", "West Highland White Terrier",
+          "Whippet", "Wire Fox Terrier", "Wirehaired Pointing Griffon", "Wirehaired Vizsla", "Xoloitzcuintli", "Yorkshire Terrier"
+      ];
+      const rows = 6;
+      const keyboardRows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+      const board = document.querySelector("#board");
+      const input = document.querySelector("#guessInput");
+      const form = document.querySelector("#guessForm");
+      const message = document.querySelector("#message");
+      const keyboard = document.querySelector("#keyboard");
+      const keyStates = new Map();
+      let answer;
+      let guesses;
+      let finished;
+
+      function startGame() {
+        answer = breeds[Math.floor(Math.random() * breeds.length)];
+        guesses = [];
+        finished = false;
+        keyStates.clear();
+        document.querySelector("#lengthLabel").textContent = answer.length;
+        document.querySelector("#turnLabel").textContent = "1";
+        input.value = "";
+        input.maxLength = answer.length;
+        input.disabled = false;
+        document.querySelector("#submitGuess").disabled = false;
+        message.textContent = "Guess a dog breed with the matching number of letters.";
+        message.className = "message";
+        drawBoard();
+        drawKeyboard();
+        input.focus();
+      }
+
+      function drawBoard() {
+        board.replaceChildren();
+        board.style.setProperty("--word-length", answer.length);
+        board.style.setProperty("--board-width", `${answer.length * 52 + (answer.length - 1) * 7}px`);
+        for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+          const row = document.createElement("div");
+          row.className = "row";
+          row.setAttribute("aria-label", `Guess ${rowIndex + 1}`);
+          const guess = guesses[rowIndex];
+          for (let column = 0; column < answer.length; column += 1) {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            if (guess) {
+              tile.textContent = guess.word[column];
+              tile.classList.add(guess.result[column]);
+            } else if (rowIndex === guesses.length) {
+              const letter = input.value.toUpperCase()[column] || "";
+              tile.textContent = letter;
+              if (letter) tile.classList.add("filled");
+            }
+            row.append(tile);
+          }
+          board.append(row);
+        }
+      }
+
+      function drawKeyboard() {
+        keyboard.replaceChildren();
+        keyboardRows.forEach((letters, rowIndex) => {
+          const row = document.createElement("div");
+          row.className = "key-row";
+          if (rowIndex === 2) {
+            const enter = createKey("ENTER", "wide", submitGuess);
+            row.append(enter);
+          }
+          for (const letter of letters) {
+            const key = createKey(letter, "letter-key", () => addLetter(letter));
+            const state = keyStates.get(letter);
+            if (state) key.classList.add(state);
+            row.append(key);
+          }
+          if (rowIndex === 2) row.append(createKey("⌫", "wide", removeLetter));
+          keyboard.append(row);
+        });
+      }
+
+      function createKey(label, extraClass, action) {
+        const key = document.createElement("button");
+        key.type = "button";
+        key.className = `key ${extraClass}`;
+        key.textContent = label;
+        key.disabled = finished;
+        key.setAttribute("aria-label", label === "⌫" ? "Delete last letter" : label);
+        key.addEventListener("click", action);
+        return key;
+      }
+
+      function addLetter(letter) {
+        if (finished || input.value.length >= answer.length) return;
+        input.value += letter;
+        drawBoard();
+        input.focus();
+      }
+
+      function removeLetter() {
+        if (finished) return;
+        input.value = input.value.slice(0, -1);
+        drawBoard();
+        input.focus();
+      }
+
+      function submitGuess(event) {
+        if (event) event.preventDefault();
+        if (finished) return;
+        const word = input.value.trim().toUpperCase();
+        if (word.length !== answer.length) {
+          showMessage(`This breed needs ${answer.length} letters.`, "error");
+          return;
+        }
+        if (!breeds.includes(word)) {
+          showMessage("That breed isn't in the list yet. Check the breed guide below.", "error");
+          return;
+        }
+
+        const result = scoreGuess(word, answer);
+        guesses.push({ word, result });
+        updateKeyStates(word, result);
+        input.value = "";
+        document.querySelector("#turnLabel").textContent = Math.min(guesses.length + 1, rows);
+        drawBoard();
+        drawKeyboard();
+
+        if (word === answer) {
+          finish(`Good dog! You found ${answer} in ${guesses.length} ${guesses.length === 1 ? "guess" : "guesses"}.`, "success");
+        } else if (guesses.length === rows) {
+          finish(`The breed was ${answer}. Give it another go!`, "error");
+        } else {
+          showMessage("Keep sniffing! Green is the right spot; gold is in the breed.", "");
+          input.focus();
+        }
+      }
+
+      function scoreGuess(guess, target) {
+        const result = Array(guess.length).fill("absent");
+        const remaining = target.split("");
+        for (let i = 0; i < guess.length; i += 1) {
+          if (guess[i] === target[i]) {
+            result[i] = "correct";
+            remaining[i] = null;
+          }
+        }
+        for (let i = 0; i < guess.length; i += 1) {
+          if (result[i] === "correct") continue;
+          const match = remaining.indexOf(guess[i]);
+          if (match !== -1) {
+            result[i] = "present";
+            remaining[match] = null;
+          }
+        }
+        return result;
+      }
+
+      function updateKeyStates(word, result) {
+        const priority = { absent: 0, present: 1, correct: 2 };
+        for (let i = 0; i < word.length; i += 1) {
+          const previous = keyStates.get(word[i]);
+          if (!previous || priority[result[i]] > priority[previous]) {
+            keyStates.set(word[i], result[i]);
+          }
+        }
+      }
+
+      function showMessage(text, type) {
+        message.textContent = text;
+        message.className = `message${type ? ` ${type}` : ""}`;
+      }
+
+      function finish(text, type) {
+        finished = true;
+        input.disabled = true;
+        document.querySelector("#submitGuess").disabled = true;
+        drawKeyboard();
+        showMessage(text, type);
+      }
+
+      form.addEventListener("submit", submitGuess);
+      input.addEventListener("input", () => {
+        input.value = input.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, answer.length);
+        drawBoard();
+      });
+      document.querySelector("#newGame").addEventListener("click", startGame);
+      document.querySelector("#breedList").textContent = breeds.slice().sort().join(" · ");
+      startGame();
+    })();
+  </script>
+</body>
+</html>
